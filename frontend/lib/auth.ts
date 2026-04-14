@@ -22,6 +22,8 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import type { NextAuthConfig } from "next-auth";
 
+let hasWarnedMissingAdminCredentials = false;
+
 export const authConfig: NextAuthConfig = {
   providers: [
     // ── 本地管理員帳號（Credentials）────────────────────────
@@ -33,8 +35,18 @@ export const authConfig: NextAuthConfig = {
         password: { label: "密碼", type: "password" },
       },
       async authorize(credentials) {
-        const adminUsername = process.env.ADMIN_USERNAME ?? "admin";
-        const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+        const adminUsername = process.env.ADMIN_USERNAME;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (!adminUsername || !adminPassword) {
+          if (!hasWarnedMissingAdminCredentials) {
+            console.warn(
+              "[auth] Credentials provider disabled: ADMIN_USERNAME/ADMIN_PASSWORD is not set."
+            );
+            hasWarnedMissingAdminCredentials = true;
+          }
+          return null;
+        }
 
         if (
           typeof credentials?.username === "string" &&

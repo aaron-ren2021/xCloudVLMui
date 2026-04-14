@@ -16,8 +16,16 @@ venv/
 .env
 .env.local
 .env.production
+.env.*
 frontend/.env.local
 backend/.env
+*.pem
+*.key
+id_rsa
+id_ecdsa
+id_ed25519
+*.p12
+*.pfx
 
 # Database / Vector DB
 *.db
