@@ -3,6 +3,7 @@ config.py — 後端環境設定（pydantic-settings）
 """
 from functools import lru_cache
 from pathlib import Path
+from secrets import token_urlsafe
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
     # ── 基礎 ────────────────────────────────────────────
     app_name:    str  = "xCloudVLMui Platform"
     debug:       bool = False
-    secret_key:  str  = "change-me-in-production-32-chars!!"
+    secret_key: str = Field(default_factory=lambda: token_urlsafe(48))
 
     # ── 資料庫 ──────────────────────────────────────────
     database_url: str = "sqlite+aiosqlite:///./xcloudvlm.db"
@@ -39,7 +40,7 @@ class Settings(BaseSettings):
     )
 
     # ── NextAuth JWT Secret（驗證 API 請求用）───────────
-    nextauth_secret: str = "nextauth-secret-must-match-frontend"
+    nextauth_secret: str = Field(default_factory=lambda: token_urlsafe(48))
 
     # ── MQTT Broker ──────────────────────────────────────────────────
     mqtt_broker_host:  str = "mosquitto"          # Docker service name / IP
