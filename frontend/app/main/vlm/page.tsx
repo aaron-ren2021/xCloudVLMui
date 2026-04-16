@@ -20,6 +20,7 @@ import {
 import toast from "react-hot-toast";
 import { dashboardApi, reportsApi, vlmApi, ragApi } from "@/lib/api";
 import type { Equipment, RagSource } from "@/types";
+import { VlmSimpleOverlay } from "@/components/vlm/vlm-simple-overlay";
 
 const INSPECTION_SCENARIOS = [
   { title: "外觀與管線異常掃描", detail: "漏油、漏水、鬆脫、外殼變形與異常磨耗。" },
@@ -135,6 +136,7 @@ export default function VlmPage() {
     [],
   );
   const VLM_SYNC_URL = useMemo(() => withSyncFlag(VLM_URL), [VLM_URL, withSyncFlag]);
+  const VLM_MINIMAL_URL = useMemo(() => `${withSyncFlag(VLM_URL)}&minimal=1`, [VLM_URL, withSyncFlag]);
   const STANDALONE_VLM_URL = useMemo(
     () => (configuredStandaloneVlmUrl ? withSyncFlag(configuredStandaloneVlmUrl) : "https://<current-host>:8090/?xcloud_sync=1"),
     [configuredStandaloneVlmUrl, withSyncFlag],
@@ -446,17 +448,20 @@ export default function VlmPage() {
         </div>
 
         <div
-          className="mt-4 overflow-hidden rounded-[28px] border border-white/8 bg-slate-950/70"
-          style={{ height: "clamp(500px, calc(100vh - 280px), 900px)" }}
+          className="relative mt-4 overflow-hidden rounded-[28px] border border-white/8 bg-slate-950/70"
+          style={{ height: "clamp(560px, 72vh, 920px)" }}
         >
           <iframe
             key={iframeKey}
-            src={VLM_SYNC_URL}
+            src={VLM_MINIMAL_URL}
             className="h-full w-full border-0"
             title="live-vlm-webui"
             allow="camera; microphone; autoplay; clipboard-write"
             sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-pointer-lock"
           />
+
+          {/* 極簡文字同步浮層 */}
+          <VlmSimpleOverlay />
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-3">

@@ -82,6 +82,39 @@ def main() -> None:
 
     sync_helper_anchor = "        // Tooltip positioning (for fixed position tooltips)\n"
     sync_helper_block = (
+        "        // === xCloud 極簡結果同步（監聽 WebSocket 並把 VLM 結果存到 localStorage）===\n"
+        "        (function() {\n"
+        "          const originalWebSocket = window.WebSocket;\n"
+        "          window.WebSocket = function(...args) {\n"
+        "            const ws = new originalWebSocket(...args);\n"
+        "            ws.addEventListener('message', function(event) {\n"
+        "              try {\n"
+        "                const data = JSON.parse(event.data);\n"
+        "                let result = null;\n"
+        "\n"
+        "                if (data.choices?.[0]?.message?.content) {\n"
+        "                  result = data.choices[0].message.content;\n"
+        "                } else if (data.content) {\n"
+        "                  result = data.content;\n"
+        "                } else if (data.result || data.analysis) {\n"
+        "                  result = data.result || data.analysis;\n"
+        "                }\n"
+        "\n"
+        "                if (result) {\n"
+        "                  const payload = typeof result === 'string' ? { raw_text: result } : result;\n"
+        "                  const message = {\n"
+        "                    type: 'VLM_ANALYSIS_RESULT',\n"
+        "                    payload: payload,\n"
+        "                    timestamp: new Date().toISOString()\n"
+        "                  };\n"
+        "                  localStorage.setItem('xcloud.live_vlm.latest_result', JSON.stringify(message));\n"
+        "                }\n"
+        "              } catch (e) {}\n"
+        "            });\n"
+        "            return ws;\n"
+        "          };\n"
+        "        })();\n"
+        "\n"
         "        function getActiveInputSource() {\n"
         "            const activeTab = document.querySelector('.input-source-tab.active');\n"
         "            return activeTab ? activeTab.getAttribute('data-source') : DEFAULT_INPUT_SOURCE;\n"
@@ -497,7 +530,53 @@ def main() -> None:
             "load sequence fallback injection",
         )
 
+    # === xCloud minimal mode: URL ?minimal=1 hides panels, shows only video + Start ===
+    minimal_mode_block = (
+        "\n"
+        "    <script>\n"
+        "    (function() {\n"
+        "      if (new URLSearchParams(window.location.search).get('minimal') !== '1') return;\n"
+        "      var s = document.createElement('style');\n"
+        "      s.textContent = `\n"
+        "        .header { display: none !important; }\n"
+        "        .sidebar { display: none !important; }\n"
+        "        .result-card { display: none !important; }\n"
+        "        .container {\n"
+        "          display: block !important;\n"
+        "          padding: 0 !important;\n"
+        "          max-width: 100% !important;\n"
+        "        }\n"
+        "        .main-content {\n"
+        "          width: 100% !important;\n"
+        "          max-width: 100% !important;\n"
+        "          padding: 0 !important;\n"
+        "          margin: 0 !important;\n"
+        "        }\n"
+        "        .video-card {\n"
+        "          height: 100vh !important;\n"
+        "          border-radius: 0 !important;\n"
+        "          border: none !important;\n"
+        "        }\n"
+        "        body { overflow: hidden !important; }\n"
+        "      `;\n"
+        "      document.head.appendChild(s);\n"
+        "    })();\n"
+        "    </script>\n"
+    )
+    # Inject before closing </body>
+    content = content.replace("</body>", minimal_mode_block + "</body>", 1)
+
     TARGET.write_text(content, encoding="utf-8")
+    # Some upstream revisions include duplicate anchor regions.
+    # Normalize key declarations to `var` so repeated injection won't break JS parse.
+    normalized = TARGET.read_text(encoding="utf-8")
+    normalized = normalized.replace("const DEFAULT_INPUT_SOURCE =", "var DEFAULT_INPUT_SOURCE =")
+    normalized = normalized.replace("const DEFAULT_RTSP_URL =", "var DEFAULT_RTSP_URL =")
+    normalized = normalized.replace("const DEFAULT_API_BASE =", "var DEFAULT_API_BASE =")
+    normalized = normalized.replace("const XSYNC_KEY =", "var XSYNC_KEY =")
+    normalized = normalized.replace("const XSYNC_SENDER =", "var XSYNC_SENDER =")
+    normalized = normalized.replace("let isApplyingExternalSync =", "var isApplyingExternalSync =")
+    TARGET.write_text(normalized, encoding="utf-8")
     print(f"patched: {TARGET}")
 
 
