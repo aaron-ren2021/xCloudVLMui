@@ -14,12 +14,16 @@ import {
   Save,
   Search,
   ShieldCheck,
+  Users,
   X,
   Zap,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { dashboardApi, reportsApi, vlmApi, ragApi } from "@/lib/api";
 import type { Equipment, RagSource } from "@/types";
+import type { PeopleAnalysisSnapshot } from "@/hooks/useBehaviorDetector";
+import { ACTION_ZH, GENDER_ZH } from "@/hooks/useBehaviorDetector";
+import { VlmPeopleOverlay } from "@/components/vlm/vlm-people-overlay";
 import { VlmSimpleOverlay } from "@/components/vlm/vlm-simple-overlay";
 
 const INSPECTION_SCENARIOS = [
@@ -113,6 +117,8 @@ export default function VlmPage() {
   const [status, setStatus] = useState<VlmStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
+  const [peopleOverlayEnabled, setPeopleOverlayEnabled] = useState(true);
+  const [peopleSnapshot, setPeopleSnapshot] = useState<PeopleAnalysisSnapshot | null>(null);
   const [compareQuery, setCompareQuery] = useState("");
   const [comparing, setComparing] = useState(false);
   const [compareResult, setCompareResult] = useState<{
@@ -433,6 +439,13 @@ export default function VlmPage() {
             >
               {sessionState === "active" ? "結束會話" : "建立會話"}
             </button>
+            <button
+              onClick={() => setPeopleOverlayEnabled((value) => !value)}
+              className={`secondary-button ${peopleOverlayEnabled ? "border-cyan-400/40 bg-cyan-500/10 text-cyan-100" : ""}`}
+            >
+              <Users className="h-4 w-4" />
+              {peopleOverlayEnabled ? "關閉人員分析" : "開啟人員分析"}
+            </button>
             <button onClick={handleSaveSession} disabled={saving} className="primary-button">
               <Save className="h-4 w-4" />
               {saving ? "轉換中..." : "儲存為報告"}
@@ -462,6 +475,7 @@ export default function VlmPage() {
 
           {/* 極簡文字同步浮層 */}
           <VlmSimpleOverlay />
+          <VlmPeopleOverlay enabled={peopleOverlayEnabled} onSnapshotChange={setPeopleSnapshot} />
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -496,6 +510,101 @@ export default function VlmPage() {
             <p className="mt-3 text-sm font-semibold text-white">{rawJsonParsed ? "已解析 raw_vlm_json" : "尚未貼上 JSON"}</p>
             <p className="mt-1 text-xs text-slate-400">半自動回寫：貼上 JSON 後送出 /capture-vlm-session</p>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-[28px] border border-cyan-400/15 bg-slate-950/60 p-5">
+          <div className="flex items-center justify-between gap-3 border-b border-white/8 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-500/10">
+                <Users className="h-4 w-4 text-cyan-300" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">People Analysis</p>
+                <h3 className="mt-1 text-base font-semibold text-white">人員分析與行為提示</h3>
+              </div>
+            </div>
+            <span className={`status-pill ${peopleOverlayEnabled ? "status-pill-ok" : "status-pill-warn"}`}>
+              {peopleOverlayEnabled ? "Overlay On" : "Overlay Off"}
+            </span>
+          </div>
+
+          {peopleSnapshot ? (
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <StatusTile
+                    label="人員數"
+                    statusLabel={peopleSnapshot.sourceType === "structured" ? "Structured" : "Heuristic"}
+                    value={`${peopleSnapshot.personCount} 人`}
+                    detail="沿用目前 localStorage 同步結果"
+                    tone="status-pill-ok"
+                  />
+                  <StatusTile
+                    label="主要動作"
+                    statusLabel="Action"
+                    value={peopleSnapshot.personInfos[0] ? ACTION_ZH[peopleSnapshot.personInfos[0].action] : "未提供"}
+                    detail={peopleSnapshot.personInfos[0]?.actionBasis ?? "尚未偵測到可用線索"}
+                    tone="status-pill-warn"
+                  />
+                  <StatusTile
+                    label="性別推測"
+                    statusLabel="Experimental"
+                    value={peopleSnapshot.personInfos[0] ? GENDER_ZH[peopleSnapshot.personInfos[0].gender] : "未提供"}
+                    detail={peopleSnapshot.personInfos[0]?.genderBasis ?? "heuristic only"}
+                    tone="status-pill-warn"
+                  />
+                </div>
+
+                <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">實驗性說明</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    性別推測只做輔助顯示，不作正式判定或告警依據。若目前來源僅有 VLM 文字結果，動作與性別會以關鍵字 heuristic 呈現。
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">高優先行為</p>
+                  {peopleSnapshot.behaviors.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {peopleSnapshot.behaviors.slice(0, 6).map((item) => (
+                        <span
+                          key={`${item.type}-${item.timestamp}`}
+                          className={`rounded-full border px-2.5 py-1 text-[11px] ${
+                            item.risk === "critical"
+                              ? "border-red-400/30 bg-red-500/10 text-red-200"
+                              : item.risk === "warning"
+                                ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                                : "border-slate-400/20 bg-white/5 text-slate-200"
+                          }`}
+                        >
+                          {item.nameZh}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-400">目前尚未擷取到人員行為提示。</p>
+                  )}
+                </div>
+
+                {peopleSnapshot.sourceText && (
+                  <div className="rounded-[18px] border border-white/8 bg-slate-950/40 p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">來源摘錄</p>
+                    <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-300">
+                      {peopleSnapshot.sourceText}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-[18px] border border-dashed border-white/10 bg-white/[0.02] p-4">
+              <p className="text-sm text-slate-400">
+                目前尚未從 live VLM 同步結果中擷取到人員資訊。開啟獨立視窗後進行人員相關巡檢，overlay 會沿用既有 localStorage 橋接自動更新。
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 rounded-[28px] border border-white/10 bg-slate-950/60 p-5">
