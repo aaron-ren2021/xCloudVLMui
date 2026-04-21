@@ -25,6 +25,15 @@ def replace_optional(content: str, old: str, new: str) -> tuple[str, bool]:
     return content.replace(old, new, 1), True
 
 
+def replace_count(content: str, old: str, new: str, count: int, label: str) -> str:
+    old_count = content.count(old)
+    if old_count == 0 and content.count(new) >= count:
+        return content
+    if old_count < count:
+        raise RuntimeError(f"patch anchor missing: {label} (need {count}, found {old_count})")
+    return content.replace(old, new, count)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-source", default="rtsp")
@@ -44,6 +53,9 @@ def main() -> None:
         "        const XSYNC_KEY = 'xcloud.live_vlm.sync';\n"
         "        const XSYNC_SENDER = crypto.randomUUID ? crypto.randomUUID() : 'sync-' + Date.now() + '-' + Math.random().toString(36).slice(2);\n"
         "        let isApplyingExternalSync = false;\n"
+        "        let startInProgress = false;\n"
+        "        let stopInProgress = false;\n"
+        "        let activeStartToken = 0;\n"
     )
     content = replace_once(
         content,
@@ -201,6 +213,21 @@ def main() -> None:
         sync_helper_block + sync_helper_anchor,
         "sync helper block",
     )
+    sync_apply_anchor = (
+        "                if (incoming.running && !isAnalysisRunning) {\n"
+        "                    await start();\n"
+        "                } else if (!incoming.running && isAnalysisRunning) {\n"
+        "                    await stop();\n"
+        "                }\n"
+    )
+    sync_apply_new = (
+        "                if (incoming.running && !isAnalysisRunning && !startInProgress && !stopInProgress) {\n"
+        "                    await start();\n"
+        "                } else if (!incoming.running && isAnalysisRunning && !startInProgress && !stopInProgress) {\n"
+        "                    await stop();\n"
+        "                }\n"
+    )
+    content = replace_once(content, sync_apply_anchor, sync_apply_new, "sync apply lock")
 
     tab_click_sync_anchor = (
         "                } else if (source === 'rtsp') {\n"
@@ -441,6 +468,105 @@ def main() -> None:
     )
     content = replace_once(content, start_rtsp_anchor, start_rtsp_new, "start rtsp sync")
 
+    start_function_anchor = (
+        "        // Start - dispatch to webcam or RTSP based on active tab\n"
+        "        async function start() {\n"
+        "            // Animate big button\n"
+        "            const bigBtn = document.getElementById('bigStartBtn');\n"
+        "            bigBtn.classList.add('animating');\n"
+        "            setTimeout(() => {\n"
+        "                bigBtn.classList.remove('animating');\n"
+        "                bigBtn.classList.add('streaming');\n"
+        "            }, 500);\n"
+        "\n"
+        "            // Show small stop button\n"
+        "            document.getElementById('smallStopBtn').classList.add('show');\n"
+        "\n"
+        "            const activeTab = document.querySelector('.input-source-tab.active');\n"
+        "            const inputSource = activeTab ? activeTab.getAttribute('data-source') : DEFAULT_INPUT_SOURCE;\n"
+        "\n"
+        "            if (inputSource === 'webcam') {\n"
+        "                await startWebcam();\n"
+        "            } else if (inputSource === 'rtsp') {\n"
+        "                await startRTSP();\n"
+        "            }\n"
+        "        }\n"
+    )
+    start_function_new = (
+        "        // Start - dispatch to webcam or RTSP based on active tab\n"
+        "        async function start() {\n"
+        "            if (startInProgress || stopInProgress || isAnalysisRunning) {\n"
+        "                console.log('Skip start: lock active or already running');\n"
+        "                return;\n"
+        "            }\n"
+        "            startInProgress = true;\n"
+        "            const startToken = Date.now();\n"
+        "            activeStartToken = startToken;\n"
+        "            try {\n"
+        "                // Animate big button\n"
+        "                const bigBtn = document.getElementById('bigStartBtn');\n"
+        "                bigBtn.classList.add('animating');\n"
+        "                setTimeout(() => {\n"
+        "                    bigBtn.classList.remove('animating');\n"
+        "                    bigBtn.classList.add('streaming');\n"
+        "                }, 500);\n"
+        "\n"
+        "                // Show small stop button\n"
+        "                document.getElementById('smallStopBtn').classList.add('show');\n"
+        "\n"
+        "                const activeTab = document.querySelector('.input-source-tab.active');\n"
+        "                const inputSource = activeTab ? activeTab.getAttribute('data-source') : DEFAULT_INPUT_SOURCE;\n"
+        "\n"
+        "                if (inputSource === 'webcam') {\n"
+        "                    await startWebcam();\n"
+        "                } else if (inputSource === 'rtsp') {\n"
+        "                    await startRTSP();\n"
+        "                }\n"
+        "            } finally {\n"
+        "                if (activeStartToken === startToken) {\n"
+        "                    startInProgress = false;\n"
+        "                }\n"
+        "            }\n"
+        "        }\n"
+    )
+    content = replace_once(content, start_function_anchor, start_function_new, "start lock function")
+
+    pc_init_old = (
+        "                peerConnection = new RTCPeerConnection({\n"
+        "                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]\n"
+        "                });\n"
+    )
+    pc_init_new = (
+        "                peerConnection = new RTCPeerConnection({\n"
+        "                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]\n"
+        "                });\n"
+        "                const pc = peerConnection;\n"
+    )
+    content = replace_count(content, pc_init_old, pc_init_new, 2, "pc init in webcam/rtsp")
+    content = replace_count(content, "                peerConnection.ontrack = (event) => {\n", "                pc.ontrack = (event) => {\n", 2, "pc ontrack")
+    content = replace_count(content, "                peerConnection.oniceconnectionstatechange = () => {\n", "                pc.oniceconnectionstatechange = () => {\n", 2, "pc oniceconnectionstatechange")
+    content = replace_count(content, "                    console.log('ICE connection state:', peerConnection.iceConnectionState);\n", "                    console.log('ICE connection state:', pc.iceConnectionState);\n", 2, "pc ice state log")
+    content = replace_count(content, "                    switch (peerConnection.iceConnectionState) {\n", "                    switch (pc.iceConnectionState) {\n", 2, "pc ice state switch")
+    content = replace_count(content, "                    peerConnection.addTrack(track, localStream);\n", "                    pc.addTrack(track, localStream);\n", 1, "pc addTrack")
+    content = replace_count(content, "                peerConnection.addTransceiver('video', { direction: 'recvonly' });\n", "                pc.addTransceiver('video', { direction: 'recvonly' });\n", 1, "pc addTransceiver")
+    content = replace_count(content, "                const offer = await peerConnection.createOffer();\n", "                const offer = await pc.createOffer();\n", 2, "pc createOffer")
+    content = replace_count(content, "                await peerConnection.setLocalDescription(offer);\n", "                await pc.setLocalDescription(offer);\n", 2, "pc setLocalDescription")
+    content = replace_count(content, "                        sdp: peerConnection.localDescription.sdp,\n", "                        sdp: pc.localDescription.sdp,\n", 2, "pc localDescription.sdp")
+    content = replace_count(content, "                        type: peerConnection.localDescription.type,\n", "                        type: pc.localDescription.type,\n", 2, "pc localDescription.type")
+    content = replace_count(
+        content,
+        "                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));\n",
+        "                if (!pc || pc.signalingState === 'closed' || peerConnection !== pc) {\n"
+        "                    throw new Error('WebRTC negotiation interrupted (peer connection changed)');\n"
+        "                }\n"
+        "                await pc.setRemoteDescription(new RTCSessionDescription(answer));\n",
+        2,
+        "pc setRemoteDescription guard",
+    )
+    content = content.replace("peerConnection.iceGatheringState", "pc.iceGatheringState")
+    content = content.replace("peerConnection.removeEventListener('icegatheringstatechange', checkState);", "pc.removeEventListener('icegatheringstatechange', checkState);")
+    content = content.replace("peerConnection.addEventListener('icegatheringstatechange', checkState);", "pc.addEventListener('icegatheringstatechange', checkState);")
+
     stop_anchor = (
         "            isAnalysisRunning = false;\n"
         "            updateStatus('Connected', 'connected');\n"
@@ -455,6 +581,128 @@ def main() -> None:
         "            // Re-enable RTSP URL field and Test button\n"
     )
     content = replace_once(content, stop_anchor, stop_new, "stop sync")
+
+    stop_function_anchor = (
+        "        // Stop (handles both webcam and RTSP)\n"
+        "        async function stop() {\n"
+        "            // Reset overlay buttons\n"
+        "            const bigBtn = document.getElementById('bigStartBtn');\n"
+        "            const smallStopBtn = document.getElementById('smallStopBtn');\n"
+        "            bigBtn.classList.remove('animating', 'streaming');\n"
+        "            smallStopBtn.classList.remove('show');\n"
+        "\n"
+        "            if (fadeTimeout) {\n"
+        "                clearTimeout(fadeTimeout);\n"
+        "                fadeTimeout = null;\n"
+        "            }\n"
+        "\n"
+        "            // Stop webcam (if in webcam mode)\n"
+        "            if (localStream) {\n"
+        "                localStream.getTracks().forEach(track => track.stop());\n"
+        "                localStream = null;\n"
+        "            }\n"
+        "\n"
+        "            // Close WebRTC peer connection (used by both webcam and RTSP)\n"
+        "            if (peerConnection) {\n"
+        "                peerConnection.close();\n"
+        "                peerConnection = null;\n"
+        "            }\n"
+        "\n"
+        "            videoElement.srcObject = null;\n"
+        "\n"
+        "            isAnalysisRunning = false;\n"
+        "            updateStatus('Connected', 'connected');\n"
+        "            publishSyncState({ running: false });\n"
+        "\n"
+        "            // Re-enable RTSP URL field and Test button\n"
+        "            const rtspUrlInput = document.getElementById('rtspUrl');\n"
+        "            if (rtspUrlInput) {\n"
+        "                rtspUrlInput.disabled = false;\n"
+        "            }\n"
+        "            const testRtspBtn = document.getElementById('testRtspBtn');\n"
+        "            if (testRtspBtn) {\n"
+        "                testRtspBtn.disabled = false;\n"
+        "            }\n"
+        "\n"
+        "            const contentDiv = document.getElementById('resultTextContent');\n"
+        "            if (contentDiv) {\n"
+        "                contentDiv.textContent = '';\n"
+        "                contentDiv.innerHTML = '';\n"
+        "            } else {\n"
+        "                resultText.textContent = '';\n"
+        "                resultText.innerHTML = '';\n"
+        "            }\n"
+        "            resultText.classList.remove('fade');\n"
+        "            videoOverlay.textContent = '';\n"
+        "            lastText = '';\n"
+        "        }\n"
+    )
+    stop_function_new = (
+        "        // Stop (handles both webcam and RTSP)\n"
+        "        async function stop() {\n"
+        "            if (stopInProgress) {\n"
+        "                return;\n"
+        "            }\n"
+        "            stopInProgress = true;\n"
+        "            try {\n"
+        "                // Reset overlay buttons\n"
+        "                const bigBtn = document.getElementById('bigStartBtn');\n"
+        "                const smallStopBtn = document.getElementById('smallStopBtn');\n"
+        "                bigBtn.classList.remove('animating', 'streaming');\n"
+        "                smallStopBtn.classList.remove('show');\n"
+        "\n"
+        "                if (fadeTimeout) {\n"
+        "                    clearTimeout(fadeTimeout);\n"
+        "                    fadeTimeout = null;\n"
+        "                }\n"
+        "\n"
+        "                // Stop webcam (if in webcam mode)\n"
+        "                if (localStream) {\n"
+        "                    localStream.getTracks().forEach(track => track.stop());\n"
+        "                    localStream = null;\n"
+        "                }\n"
+        "\n"
+        "                // Close WebRTC peer connection (used by both webcam and RTSP)\n"
+        "                if (peerConnection) {\n"
+        "                    peerConnection.close();\n"
+        "                    peerConnection = null;\n"
+        "                }\n"
+        "\n"
+        "                videoElement.srcObject = null;\n"
+        "\n"
+        "                isAnalysisRunning = false;\n"
+        "                updateStatus('Connected', 'connected');\n"
+        "                publishSyncState({ running: false });\n"
+        "\n"
+        "                // Re-enable RTSP URL field and Test button\n"
+        "                const rtspUrlInput = document.getElementById('rtspUrl');\n"
+        "                if (rtspUrlInput) {\n"
+        "                    rtspUrlInput.disabled = false;\n"
+        "                }\n"
+        "                const testRtspBtn = document.getElementById('testRtspBtn');\n"
+        "                if (testRtspBtn) {\n"
+        "                    testRtspBtn.disabled = false;\n"
+        "                }\n"
+        "\n"
+        "                const contentDiv = document.getElementById('resultTextContent');\n"
+        "                if (contentDiv) {\n"
+        "                    contentDiv.textContent = '';\n"
+        "                    contentDiv.innerHTML = '';\n"
+        "                } else {\n"
+        "                    resultText.textContent = '';\n"
+        "                    resultText.innerHTML = '';\n"
+        "                }\n"
+        "                resultText.classList.remove('fade');\n"
+        "                videoOverlay.textContent = '';\n"
+        "                lastText = '';\n"
+        "            } finally {\n"
+        "                startInProgress = false;\n"
+        "                stopInProgress = false;\n"
+        "                activeStartToken = 0;\n"
+        "            }\n"
+        "        }\n"
+    )
+    content = replace_once(content, stop_function_anchor, stop_function_new, "stop lock function")
 
     init_block = (
         "        // Enumerate cameras on page load\n"
