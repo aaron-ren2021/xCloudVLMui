@@ -6,12 +6,40 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, Any
+from urllib.parse import urlsplit, urlunsplit
 
 from config import get_settings
 
 logger   = logging.getLogger(__name__)
 router   = APIRouter(prefix="/api/vlm", tags=["vlm"])
 settings = get_settings()
+
+
+async def _probe_webui(url: str) -> bool:
+    """
+    探測 VLM WebUI。
+    - https://... 允許自簽憑證（verify=False）
+    - 若 http://... 發生協定錯配失敗，會再嘗試 https://...（verify=False）
+    """
+    base = url.rstrip("/")
+    parsed = urlsplit(base)
+
+    candidates: list[tuple[str, bool]] = [(base, parsed.scheme != "https")]
+    if parsed.scheme == "http":
+        https_url = urlunsplit(("https", parsed.netloc, parsed.path, parsed.query, parsed.fragment))
+        if https_url != base:
+            candidates.append((https_url, False))
+
+    for target, verify in candidates:
+        try:
+            async with httpx.AsyncClient(timeout=5.0, verify=verify) as c:
+                r = await c.get(f"{target}/")
+                if r.status_code < 500:
+                    return True
+        except Exception:
+            continue
+
+    return False
 
 
 class VlmStatusResponse(BaseModel):
@@ -41,13 +69,8 @@ async def vlm_status():
     webui_ok = llm_ok = False
     model    = None
 
-    # 測試 live-vlm-webui
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as c:
-            r = await c.get(f"{settings.vlm_webui_url}/")
-            webui_ok = r.status_code < 500
-    except Exception as e:
-        logger.debug("vlm-webui not reachable: %s", str(e))
+    # 測試 live-vlm-webui（支援 HTTPS 自簽）
+    webui_ok = await _probe_webui(settings.vlm_webui_url)
 
     # 測試 llama.cpp
     try:

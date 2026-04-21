@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from fastapi import APIRouter, Depends
@@ -33,13 +34,26 @@ _settings = get_settings()
 # ── 外部服務健康探測（並行）─────────────────────────────────────────
 
 async def _probe_webui(url: str) -> tuple[bool, str]:
-    """探測 VLM WebUI HTTP 服務"""
-    try:
-        async with httpx.AsyncClient(timeout=4.0) as c:
-            r = await c.get(f"{url}/")
-            return r.status_code < 500, f"HTTP {r.status_code}"
-    except Exception as exc:
-        return False, str(exc)[:60]
+    """探測 VLM WebUI（支援 HTTPS 自簽與 HTTP→HTTPS fallback）"""
+    base = url.rstrip("/")
+    parsed = urlsplit(base)
+    candidates: list[tuple[str, bool]] = [(base, parsed.scheme != "https")]
+
+    if parsed.scheme == "http":
+        https_url = urlunsplit(("https", parsed.netloc, parsed.path, parsed.query, parsed.fragment))
+        if https_url != base:
+            candidates.append((https_url, False))
+
+    last_error = ""
+    for target, verify in candidates:
+        try:
+            async with httpx.AsyncClient(timeout=4.0, verify=verify) as c:
+                r = await c.get(f"{target}/")
+                return r.status_code < 500, f"HTTP {r.status_code}"
+        except Exception as exc:
+            last_error = str(exc)[:60]
+
+    return False, last_error
 
 
 async def _probe_llm(url: str) -> tuple[bool, str, str]:
