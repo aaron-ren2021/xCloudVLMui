@@ -140,6 +140,23 @@ export interface SystemSettingsUpdate {
   rag_top_k?:         number;
 }
 
+export interface ModelCatalog {
+  default_model: string;
+  source_url:    string;
+  remote_ok:     boolean;
+  models:        string[];
+}
+
+export interface ModelSwitchResponse {
+  ok:               boolean;
+  model_id:         string;
+  model_alias:      string;
+  model_repo:       string;
+  model_file:       string;
+  switch_command:   string;
+  requires_restart: boolean;
+}
+
 // ── MQTT ─────────────────────────────────────────────────────────────
 export interface MqttDevice {
   id:           string;

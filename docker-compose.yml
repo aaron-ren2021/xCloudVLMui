@@ -2,7 +2,7 @@
 # docker-compose.yml — xCloudVLMui Platform 完整服務堆疊
 #
 # 硬體：Advantech AIR-030 (Jetson AGX Orin 64GB, JetPack 6.0)
-# 模型：Gemma 4 E4B GGUF Q4_K_M  (~4GB VRAM, 128K context)
+# 模型：Gemma 4 E2B GGUF Q4_K_S  (~4GB VRAM, 128K context)
 #
 # 快速啟動：make up
 # 首次啟動：make setup && make up
@@ -10,7 +10,7 @@
 # 服務清單（共 9 個）：
 #   [1] model-init   — 自動下載 GGUF 模型（一次性任務）
 #   [2] mosquitto    — Eclipse Mosquitto MQTT Broker (Port 1883/9001)
-#   [3] llama-cpp    — Gemma 4 E4B 推論引擎 (Port 8080)
+#   [3] llama-cpp    — Gemma 4 E2B 推論引擎 (Port 8080)
 #   [4] realsense-rtsp — D435i 彩色流 → RTSP 內部橋接 (Port 8554, internal)
 #   [5] vlm-webui    — 即時視覺分析 WebUI (Port 8090, WebRTC)
 #   [6] backend      — FastAPI 中介層 (Port 8000) + /metrics Prometheus
@@ -24,7 +24,7 @@ name: xcloudvlmui-platform
 # ── 共用環境變數 ─────────────────────────────────────────────────────
 x-llm-env: &llm-env
   LLM_BASE_URL:    http://llama-cpp:8080
-  LLM_MODEL:       gemma-4-e4b-it
+  LLM_MODEL:       ${MODEL_ALIAS:-gemma-4-e2b-it}
   LLM_CTX_SIZE:    "131072"
   LLM_MAX_TOKENS:  "4096"
   LLM_TEMPERATURE: "0.1"
@@ -51,8 +51,8 @@ services:
       - model-data:/models
     environment:
       - HF_TOKEN=${HF_TOKEN:-}
-      - MODEL_REPO=${MODEL_REPO:-unsloth/gemma-4-E4B-it-GGUF}
-      - MODEL_FILE=${MODEL_FILE:-gemma-4-E4B-it-Q4_K_M.gguf}
+      - MODEL_REPO=${MODEL_REPO:-unsloth/gemma-4-E2B-it-GGUF}
+      - MODEL_FILE=${MODEL_FILE:-gemma-4-E2B-it-Q4_K_S.gguf}
       - HF_HUB_DISABLE_PROGRESS_BARS=0
     command: >
       /bin/bash -c '
@@ -105,21 +105,23 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
+      - MODEL_FILE=${MODEL_FILE:-gemma-4-E2B-it-Q4_K_S.gguf}
+      - MODEL_ALIAS=${MODEL_ALIAS:-gemma-4-e2b-it}
     volumes:
       - model-data:/models:ro
-    # Gemma 4 E4B: 128K context, Q4_K_M ~4GB VRAM
+    # Gemma 4 E2B: 128K context, Q4_K_S ~4GB VRAM
     # AIR-030 64GB 剩餘記憶體全做 KV Cache
     command:
       - /bin/bash
       - -c
       - |
         echo 'Waiting for model...'
-        until [ -f /models/gemma-4-E4B-it-Q4_K_M.gguf ]; do
+        until [ -f /models/$${MODEL_FILE} ]; do
           sleep 5
         done
         echo 'Starting llama-server...'
         exec llama-server \
-          --model /models/gemma-4-E4B-it-Q4_K_M.gguf \
+          --model /models/$${MODEL_FILE} \
           --mmproj /models/mmproj-BF16.gguf \
           --host 0.0.0.0 \
           --port 8080 \
@@ -129,7 +131,7 @@ services:
           --batch-size 512 \
           --ubatch-size 512 \
           --embedding \
-          --alias gemma-4-e4b-it
+          --alias $${MODEL_ALIAS}
     ports:
       - "8080:8080"
     depends_on:

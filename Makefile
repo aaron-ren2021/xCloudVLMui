@@ -18,15 +18,16 @@
 
 .PHONY: all setup download-model gen-ssl env-copy build up down restart \
         logs logs-llm logs-backend logs-frontend logs-mqtt status test ps clean \
-        shell-backend shell-llm dev update-model restart-mqtt \
+        shell-backend shell-llm dev update-model restart-mqtt switch-model test-model-switch \
         release release-amd64 release-full
 
 COMPOSE        := docker compose
 COMPOSE_FILE   := -f docker-compose.yml
 COMPOSE_DEV    := -f docker-compose.yml -f docker-compose.dev.yml
 SCRIPTS_DIR    := scripts
-MODEL_REPO     ?= unsloth/gemma-4-E4B-it-GGUF
-MODEL_FILE     ?= gemma-4-E4B-it-Q4_K_M.gguf
+MODEL_REPO     ?= unsloth/gemma-4-E2B-it-GGUF
+MODEL_FILE     ?= gemma-4-E2B-it-Q4_K_S.gguf
+MODEL_ALIAS    ?= gemma-4-e2b-it
 
 # ── 顏色 ─────────────────────────────────────────────────────────────
 BLUE   := \033[0;34m
@@ -44,7 +45,7 @@ help:
 	@printf "$(BLUE)╚══════════════════════════════════════════════════════╝$(NC)\n"
 	@echo ""
 	@printf "$(YELLOW)首次部署：$(NC)\n"
-	@printf "  make setup          產生 SSL + .env + 下載 Gemma 4 E4B 模型\n"
+	@printf "  make setup          產生 SSL + .env + 下載 Gemma 4 E2B 模型\n"
 	@printf "  make up             啟動所有服務\n"
 	@printf "  make test           驗證所有服務健康狀態\n"
 	@echo ""
@@ -55,6 +56,7 @@ help:
 	@printf "  make status         顯示容器狀態與資源使用\n"
 	@printf "  make ps             顯示容器列表\n"
 	@printf "  make restart        重啟所有服務\n"
+	@printf "  make switch-model MODEL=gemma-4-e4b-it  切換推論模型\n"
 	@printf "  make down           停止容器\n"
 	@printf "  make clean          完全清除（含 Volume 資料）\n"
 	@echo ""
@@ -96,10 +98,10 @@ env-copy:
 		printf "$(GREEN)  ✓ frontend/.env.local 已存在。$(NC)\n" ; \
 	fi
 
-## 下載 Gemma 4 E4B GGUF Q4_K_M 模型
+## 下載 Gemma 4 E2B GGUF Q4_K_S 模型
 download-model:
-	@printf "$(BLUE)► 下載 Gemma 4 E4B GGUF Q4_K_M...$(NC)\n"
-	@bash $(SCRIPTS_DIR)/download-model.sh --yes
+	@printf "$(BLUE)► 下載 Gemma 4 E2B GGUF Q4_K_S...$(NC)\n"
+	@MODEL_REPO=$(MODEL_REPO) MODEL_FILE=$(MODEL_FILE) bash $(SCRIPTS_DIR)/download-model.sh --yes
 
 # ─────────────────────────────────────────────────────────────────────
 # Docker 操作
@@ -113,7 +115,7 @@ build:
 ## 啟動所有服務（含自動模型下載）
 up:
 	@printf "$(BLUE)► 啟動 xCloudVLMUI 服務...$(NC)\n"
-	$(COMPOSE) $(COMPOSE_FILE) up -d
+	MODEL_REPO=$(MODEL_REPO) MODEL_FILE=$(MODEL_FILE) MODEL_ALIAS=$(MODEL_ALIAS) $(COMPOSE) $(COMPOSE_FILE) up -d
 	@printf "$(GREEN)✓ 服務已啟動，執行 make logs 查看進度。$(NC)\n"
 	@printf "$(YELLOW)  ⚠ 首次啟動 llama.cpp 載入 128K context 約需 2-5 分鐘。$(NC)\n"
 	@echo ""
@@ -136,7 +138,20 @@ restart-backend:
 
 ## 只重啟 llama.cpp
 restart-llm:
-	$(COMPOSE) $(COMPOSE_FILE) restart llama-cpp
+	MODEL_REPO=$(MODEL_REPO) MODEL_FILE=$(MODEL_FILE) MODEL_ALIAS=$(MODEL_ALIAS) $(COMPOSE) $(COMPOSE_FILE) up -d --force-recreate model-init llama-cpp backend vlm-webui nginx
+
+## 依模型 ID 切換模型並重建相關服務
+## 例：make switch-model MODEL=gemma-4-e4b-it
+switch-model:
+	@if [ -z "$(MODEL)" ]; then \
+		echo "請指定 MODEL，例如：make switch-model MODEL=gemma-4-e4b-it" ; \
+		exit 1 ; \
+	fi
+	@bash $(SCRIPTS_DIR)/switch-model.sh --model $(MODEL)
+
+## 模型切換完整測試（功能/回滾/穩定性）
+test-model-switch:
+	@bash $(SCRIPTS_DIR)/test-model-switch.sh
 
 # ─────────────────────────────────────────────────────────────────────
 # 監控

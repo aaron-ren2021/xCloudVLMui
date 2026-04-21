@@ -8,7 +8,6 @@ import {
   Save,
   ScanLine,
   Server,
-  Settings2,
   Sliders,
   Zap,
 } from "lucide-react";
@@ -16,12 +15,19 @@ import toast from "react-hot-toast";
 import { settingsApi } from "@/lib/api";
 import type { SystemSettings } from "@/types";
 
+const DEFAULT_MODEL = "gemma-4-e2b-it";
+const SWITCH_OPTIONS = [
+  { id: "gemma-4-e2b-it", label: "Gemma 4 E2B (Q4_K_S, Default)" },
+  { id: "gemma-4-e2b-it-q4-k-m", label: "Gemma 4 E2B (Q4_K_M)" },
+  { id: "gemma-4-e4b-it", label: "Gemma 4 E4B (Q4_K_M)" },
+] as const;
+
 const DEFAULT: SystemSettings = {
   ocr_engine:       "vlm",
   embed_model_url:  "",
-  embed_model_name: "gemma-4-e4b-it",
+  embed_model_name: DEFAULT_MODEL,
   llm_model_url:    "",
-  llm_model_name:   "gemma-4-e4b-it",
+  llm_model_name:   DEFAULT_MODEL,
   chunk_size:       800,
   chunk_overlap:    100,
   rag_top_k:        5,
@@ -86,18 +92,38 @@ export default function SettingsPage() {
   const [loading, setLoading]   = useState(true);
   const [resetting, setReset]   = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelOptions, setModelOptions]   = useState<string[]>([DEFAULT_MODEL]);
+  const [switchingModel, setSwitchingModel] = useState(false);
+  const [switchTarget, setSwitchTarget] = useState<string>("gemma-4-e2b-it");
+  const [lastSwitchCommand, setLastSwitchCommand] = useState<string>("");
+
+  const refreshModelOptions = useCallback(async (prefer: string[] = []) => {
+    setLoadingModels(true);
+    try {
+      const res = await settingsApi.models();
+      const merged = [...prefer, res.data.default_model, ...res.data.models];
+      setModelOptions(Array.from(new Set(merged.filter(Boolean))));
+    } catch {
+      setModelOptions((prev) => Array.from(new Set([...prefer, DEFAULT_MODEL, ...prev])));
+      toast.error("模型清單取得失敗，仍可手動輸入模型 ID");
+    } finally {
+      setLoadingModels(false);
+    }
+  }, []);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
     try {
       const res = await settingsApi.get();
       setSettings(res.data);
+      await refreshModelOptions([res.data.llm_model_name, res.data.embed_model_name]);
     } catch {
       toast.error("載入設定失敗");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshModelOptions]);
 
   useEffect(() => { loadSettings(); }, [loadSettings]);
 
@@ -106,6 +132,7 @@ export default function SettingsPage() {
     try {
       const res = await settingsApi.update(settings as unknown as Record<string, unknown>);
       setSettings(res.data);
+      await refreshModelOptions([res.data.llm_model_name, res.data.embed_model_name]);
       setSaved(true);
       toast.success("設定已儲存");
       setTimeout(() => setSaved(false), 2000);
@@ -121,6 +148,7 @@ export default function SettingsPage() {
     try {
       const res = await settingsApi.reset();
       setSettings(res.data);
+      await refreshModelOptions([res.data.llm_model_name, res.data.embed_model_name]);
       toast.success("已重置為預設值");
     } catch {
       toast.error("重置失敗");
@@ -186,6 +214,16 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+      {switchingModel && (
+        <section className="rounded-[20px] border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+          模型切換設定更新中。llama.cpp 重新載入期間，API 可能短暫中斷（約 30–90 秒）。
+        </section>
+      )}
+      {!!lastSwitchCommand && (
+        <section className="rounded-[20px] border border-cyan-400/25 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+          已產生服務切換指令：<code className="rounded bg-slate-900/70 px-2 py-1">{lastSwitchCommand}</code>
+        </section>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* OCR Settings */}
@@ -221,7 +259,7 @@ export default function SettingsPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
                 <div>
-                  <p className="text-sm font-semibold text-white">使用 Gemma 4 E4B VLM</p>
+                  <p className="text-sm font-semibold text-white">使用 Gemma 4 E2B VLM</p>
                   <p className="mt-1 text-xs leading-5 text-slate-400">
                     透過 llama.cpp 本地推論進行圖片文字辨識，完全離線，無需外部服務。
                     上傳圖片時將自動呼叫視覺模型提取所有可辨識文字後嵌入知識庫。
@@ -253,15 +291,21 @@ export default function SettingsPage() {
           </Field>
           <Field
             label="嵌入模型名稱"
-            hint="llama.cpp /v1/embeddings 使用的模型 ID"
+            hint={`可從下拉建議快速切換，也可手動輸入。預設：${DEFAULT_MODEL}`}
           >
             <input
               type="text"
               className={inputCls}
-              placeholder="gemma-4-e4b-it"
+              placeholder="gemma-4-e2b-it"
+              list="embed-model-options"
               value={settings.embed_model_name}
               onChange={(e) => set("embed_model_name", e.target.value)}
             />
+            <datalist id="embed-model-options">
+              {modelOptions.map((model) => (
+                <option key={`embed-${model}`} value={model} />
+              ))}
+            </datalist>
           </Field>
         </SectionCard>
 
@@ -286,16 +330,75 @@ export default function SettingsPage() {
           </Field>
           <Field
             label="語言模型名稱"
-            hint="llama.cpp /v1/chat/completions 使用的模型 ID"
+            hint={`可從下拉建議快速切換，也可手動輸入。預設：${DEFAULT_MODEL}`}
           >
             <input
               type="text"
               className={inputCls}
-              placeholder="gemma-4-e4b-it"
+              placeholder="gemma-4-e2b-it"
+              list="llm-model-options"
               value={settings.llm_model_name}
               onChange={(e) => set("llm_model_name", e.target.value)}
             />
+            <datalist id="llm-model-options">
+              {modelOptions.map((model) => (
+                <option key={`llm-${model}`} value={model} />
+              ))}
+            </datalist>
           </Field>
+          <button
+            onClick={() => refreshModelOptions([settings.llm_model_name, settings.embed_model_name])}
+            disabled={loadingModels}
+            className="secondary-button w-full"
+          >
+            {loadingModels ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            重新抓取可用模型（{modelOptions.length}）
+          </button>
+          <Field
+            label="Docker 模型切換"
+            hint="會同步更新系統設定，並回傳可執行切換指令（預設推薦 gemma-4-e2b-it）"
+          >
+            <select
+              className={inputCls}
+              value={switchTarget}
+              onChange={(e) => setSwitchTarget(e.target.value)}
+            >
+              {SWITCH_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <button
+            onClick={async () => {
+              setSwitchingModel(true);
+              try {
+                const res = await settingsApi.switchModel(switchTarget);
+                set("llm_model_name", res.data.model_alias);
+                set("embed_model_name", res.data.model_alias);
+                setLastSwitchCommand(res.data.switch_command);
+                toast.success(`已設定目標模型，請在主機執行：${res.data.switch_command}`);
+              } catch {
+                toast.error("模型切換設定失敗");
+              } finally {
+                setSwitchingModel(false);
+              }
+            }}
+            disabled={switchingModel}
+            className="primary-button w-full"
+          >
+            {switchingModel ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Server className="h-4 w-4" />
+            )}
+            套用模型切換（服務層）
+          </button>
         </SectionCard>
 
         {/* RAG Parameters */}

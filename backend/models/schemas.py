@@ -222,9 +222,9 @@ class SettingItem(BaseModel):
 class SettingsOut(BaseModel):
     ocr_engine:        str   = "vlm"          # vlm | disabled
     embed_model_url:   str   = ""
-    embed_model_name:  str   = "gemma-4-e4b-it"
+    embed_model_name:  str   = "gemma-4-e2b-it"
     llm_model_url:     str   = ""
-    llm_model_name:    str   = "gemma-4-e4b-it"
+    llm_model_name:    str   = "gemma-4-e2b-it"
     chunk_size:        int   = 800
     chunk_overlap:     int   = 100
     rag_top_k:         int   = 5
@@ -239,6 +239,27 @@ class SettingsUpdate(BaseModel):
     chunk_size:        Optional[int] = None
     chunk_overlap:     Optional[int] = None
     rag_top_k:         Optional[int] = None
+
+
+class ModelCatalogOut(BaseModel):
+    default_model: str
+    source_url:    str
+    remote_ok:     bool
+    models:        list[str]
+
+
+class ModelSwitchIn(BaseModel):
+    model_id: str
+
+
+class ModelSwitchOut(BaseModel):
+    ok:               bool
+    model_id:         str
+    model_alias:      str
+    model_repo:       str
+    model_file:       str
+    switch_command:   str
+    requires_restart: bool = True
 
 
 # ── Feature Flags ─────────────────────────────────────────────────────

@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 ###############################################################################
 # download-model.sh
-# 下載 Gemma 4 E4B GGUF Q4_K_M 至 ./models/
+# 下載指定 GGUF 模型至 ./models/（預設 gemma-4-E2B-it-Q4_K_S）
 #
 # 用法：
-#   bash scripts/download-model.sh             # 互動確認
-#   bash scripts/download-model.sh --yes       # 無人值守
-#   HF_TOKEN=xxx bash scripts/download-model.sh --yes  # Private model
+#   bash scripts/download-model.sh                                # 互動確認
+#   bash scripts/download-model.sh --yes                          # 無人值守
+#   MODEL_REPO=... MODEL_FILE=... bash scripts/download-model.sh  # 指定模型
+#   HF_TOKEN=xxx bash scripts/download-model.sh --yes             # Private model
 ###############################################################################
 set -euo pipefail
 
 MODELS_DIR="$(cd "$(dirname "$0")/.." && pwd)/models"
-MODEL_FILENAME="gemma-4-E4B-it-Q4_K_M.gguf"
+HF_REPO="${MODEL_REPO:-unsloth/gemma-4-E2B-it-GGUF}"
+MODEL_FILENAME="${MODEL_FILE:-gemma-4-E2B-it-Q4_K_S.gguf}"
 MODEL_PATH="${MODELS_DIR}/${MODEL_FILENAME}"
-
-HF_REPO="unsloth/gemma-4-E4B-it-GGUF"
 HF_FILE="${MODEL_FILENAME}"
 HF_URL="https://huggingface.co/${HF_REPO}/resolve/main/${HF_FILE}"
 
@@ -23,14 +23,14 @@ RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC
 
 echo -e "${BLUE}"
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║     Gemma 4 E4B GGUF Q4_K_M — 模型下載程式          ║"
+echo "║               GGUF 模型下載程式                     ║"
 echo "║     AIR-030 × Jetson AGX Orin 64GB × JetPack 6.0    ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
+echo -e "  模型：${YELLOW}${MODEL_FILENAME}${NC}"
 echo -e "  來源：${YELLOW}${HF_URL}${NC}"
 echo -e "  目標：${YELLOW}${MODEL_PATH}${NC}"
-echo -e "  大小：約 ${YELLOW}4.0 GB${NC}（Q4_K_M 量化）"
 echo ""
 
 # 建立目錄

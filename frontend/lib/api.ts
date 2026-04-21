@@ -5,7 +5,7 @@
  */
 import axios from "axios";
 import { getSession } from "next-auth/react";
-import type { VlmSessionCapture } from "@/types";
+import type { ModelCatalog, ModelSwitchResponse, VlmSessionCapture } from "@/types";
 
 // 使用相對路徑（空字串）讓請求走當前域名，透過 Nginx proxy 轉發
 // 本機開發可設為 http://localhost:8000，生產環境留空
@@ -149,6 +149,12 @@ export const settingsApi = {
   /** 重置為預設值 */
   reset: () =>
     apiClient.post("/api/settings/reset"),
+  /** 可選模型清單（含 llama.cpp /v1/models 即時探測） */
+  models: () =>
+    apiClient.get<ModelCatalog>("/api/settings/models"),
+  /** 切換模型設定，回傳對應的 docker 切換指令 */
+  switchModel: (modelId: string) =>
+    apiClient.post<ModelSwitchResponse>("/api/settings/models/switch", { model_id: modelId }),
 };
 
 // ── MQTT ────────────────────────────────────────────────────────────

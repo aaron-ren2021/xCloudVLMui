@@ -21,7 +21,7 @@ name: xcloudvlmui-platform
 
 x-llm-env: &llm-env
   LLM_BASE_URL:    http://llama-cpp:8080
-  LLM_MODEL:       gemma-4-e4b-it
+  LLM_MODEL:       ${MODEL_ALIAS:-gemma-4-e2b-it}
   LLM_CTX_SIZE:    "131072"
   LLM_MAX_TOKENS:  "4096"
   LLM_TEMPERATURE: "0.1"
