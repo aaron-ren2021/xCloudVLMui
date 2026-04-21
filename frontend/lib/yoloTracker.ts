@@ -55,9 +55,9 @@ export class SortTracker {
       let bestTrackId: number | null = null;
       let bestIou = 0;
 
-      for (const [trackId, track] of this.tracks.entries()) {
+      this.tracks.forEach((track, trackId) => {
         if (matchedTrackIds.has(trackId) || track.classId !== detection.classId) {
-          continue;
+          return;
         }
 
         const score = iou(track, detection);
@@ -65,7 +65,7 @@ export class SortTracker {
           bestIou = score;
           bestTrackId = trackId;
         }
-      }
+      });
 
       if (bestTrackId != null && bestIou >= this.minIou) {
         const prev = this.tracks.get(bestTrackId)!;
@@ -94,9 +94,9 @@ export class SortTracker {
       results.push(created);
     }
 
-    for (const [trackId, track] of this.tracks.entries()) {
+    this.tracks.forEach((track, trackId) => {
       if (matchedTrackIds.has(trackId)) {
-        continue;
+        return;
       }
       const aged = { ...track, age: track.age + 1 };
       if (aged.age > this.maxAge) {
@@ -104,7 +104,7 @@ export class SortTracker {
       } else {
         this.tracks.set(trackId, aged);
       }
-    }
+    });
 
     return results.sort((a, b) => a.trackId - b.trackId);
   }

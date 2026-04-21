@@ -553,11 +553,11 @@ export function useBehaviorDetector() {
       alerts.push(makeAlert("phone_usage", 0.55, `同場偵測到 ${phones.length} 個疑似手機物件`));
     }
 
-    for (const [trackId, movement] of movementMap.entries()) {
+    movementMap.forEach((movement, trackId) => {
       if (movement.frameCount >= LOITER_FRAME_THRESH) {
         alerts.push(makeAlert("loitering", 0.65, `追蹤 ID #${trackId} 長時間停留`, [trackId]));
       }
-    }
+    });
 
     setBehaviors(alerts);
     return alerts;

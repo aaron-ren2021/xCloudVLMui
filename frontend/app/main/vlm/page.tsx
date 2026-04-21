@@ -539,7 +539,7 @@ export default function VlmPage() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <StatusTile
                     label="人員數"
-                    statusLabel={peopleSnapshot.sourceType === "structured" ? "Structured" : "Heuristic"}
+                    statusLabel={peopleSnapshot.source === "structured" ? "Structured" : "Heuristic"}
                     value={`${peopleSnapshot.personCount} 人`}
                     detail="沿用目前 localStorage 同步結果"
                     tone="status-pill-ok"
