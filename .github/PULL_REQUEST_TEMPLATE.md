@@ -31,6 +31,31 @@ Closes #<!-- issue number -->
 
 ---
 
+## 🚧 VLM 移植風險閘（Porting Risk Gate）
+
+> 若此 PR 與 VLM 移植相關，請填寫。非 VLM 移植可標示 N/A。
+
+- [ ] N/A（本 PR 不涉及 VLM 移植）
+- [ ] A 類（可直接移植：純型別/純邏輯/映射）
+- [ ] B 類（需要 adapter：hook/loop/source lifecycle 接線）
+- [ ] C 類（禁止導入項）→ 若勾選此項，PR 不可 merge
+
+### 保護邊界檢查（觸及任一項請視為 High Risk）
+- [ ] 未改動 `frontend/app/main/vlm/page.tsx` 既有 `iframe/standalone/VlmSimpleOverlay` 主流程
+- [ ] 未改動 `backend/routers/vlm.py` 的 `/api/vlm/status`、`/api/vlm/diagnose` 契約
+- [ ] 未改動 Jetson compose 既有 `realsense-rtsp`、`vlm-webui`、`healthcheck`、`/dev/video*` 路徑
+- [ ] 未破壞 `vlm-webui/patch-default-rtsp.py` 的 minimal overlay 同步機制
+- [ ] 未改動既有 `nginx` 路由與 port
+
+### 禁止導入檢查（必須全為未導入）
+- [ ] 未導入 `air030` 整套 `docker-compose.yml`
+- [ ] 未導入 `air030` 整套 `nginx.conf`
+- [ ] 未導入 `air030` 的 `/api/vlm/ws`
+- [ ] 未導入 `air030` 重寫版 `frontend/app/main/vlm/page.tsx`
+- [ ] 未改變目前 RTSP/VLM 啟動順序
+
+---
+
 ## 🧪 測試計畫（Test Plan）
 
 <!-- 描述如何驗證此變更是正確的 -->
