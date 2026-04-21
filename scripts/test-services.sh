@@ -54,12 +54,14 @@ json_check "Models List"   "http://localhost:8080/v1/models" "data"
 
 # ── 推論測試 ──────────────────────────────────────────────────────
 echo ""
-echo -e "${YELLOW}[2/6] Gemma 4 E4B 推論測試${NC}"
+echo -e "${YELLOW}[2/6] Gemma 4 E2B 推論測試${NC}"
 echo -ne "  ${BLUE}►${NC} 呼叫 /v1/chat/completions（約 10-30 秒）... "
+ACTIVE_MODEL=$(curl -sk --max-time 8 "http://localhost:8080/v1/models" 2>/dev/null | \
+  python3 -c "import sys,json; d=json.load(sys.stdin); print((d.get('data') or [{}])[0].get('id','gemma-4-e2b-it'))" 2>/dev/null || echo "gemma-4-e2b-it")
 INFER_RESULT=$(curl -sk --max-time 60 \
   -X POST http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"gemma-4-e4b-it","messages":[{"role":"user","content":"回覆OK"}],"max_tokens":5}' \
+  -d "{\"model\":\"${ACTIVE_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"回覆OK\"}],\"max_tokens\":5}" \
   2>/dev/null || echo "{}")
 if echo "$INFER_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('choices')" 2>/dev/null; then
   echo -e "${GREEN}✓ 推論正常${NC}"

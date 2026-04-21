@@ -1,5 +1,5 @@
 """
-rag_service.py — ChromaDB 向量存取 + Gemma 4 E4B 生成
+rag_service.py — ChromaDB 向量存取 + Gemma 4 E2B 生成
 
 流程：
   1. 使用者輸入問題
@@ -144,7 +144,7 @@ async def semantic_search(
     return docs, sources
 
 
-# ── Gemma 4 E4B 生成 ──────────────────────────────────────────────────
+# ── Gemma 4 E2B 生成 ──────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = """你是一位工業設備維護專家 AI，專精於 PdM（預測性維護）。
 請根據以下維修手冊摘錄與歷史工單，以繁體中文回答問題。

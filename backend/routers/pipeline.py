@@ -139,7 +139,7 @@ async def get_pipeline_status(db: AsyncSession = Depends(get_db)):
         ),
         PipelineStageOut(
             stage=2, key="inference",
-            label="邊緣推論", subtitle="Gemma 4 E4B + llama.cpp",
+            label="邊緣推論", subtitle="Gemma 4 E2B + llama.cpp",
             status=s2_st, status_label=s2_sl,
             metrics={
                 "llama.cpp":  "就緒" if llm_ok else "未啟動",

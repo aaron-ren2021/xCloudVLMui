@@ -37,7 +37,7 @@
 
 - 邊緣端單機部署（Jetson AGX Orin AIR-030，離線環境）
 - 設備 VHS 健康評分系統（0–100 分）
-- VLM 視覺分析（Gemma 4 E4B GGUF，128K context）
+- VLM 視覺分析（Gemma 4 E2B GGUF，128K context）
 - RAG 知識庫問答（ChromaDB + llama.cpp）
 - MQTT 感測器資料採集與警報（Eclipse Mosquitto）
 - Web 儀表板（Next.js 14，桌面瀏覽器）
@@ -107,7 +107,7 @@
 |---|------|
 | A1 | AIR-030 已完成 JetPack 6.0 安裝，CUDA 12.6 可用 |
 | A2 | 工廠設備感測器支援 MQTT 3.1.1 協議，或透過 Gateway 轉換 |
-| A3 | 首次部署時可短暫連接網際網路下載 Gemma 4 E4B GGUF 模型 |
+| A3 | 首次部署時可短暫連接網際網路下載 Gemma 4 E2B GGUF 模型 |
 | A4 | 現場工程師使用桌面瀏覽器（Chrome ≥ 110）存取儀表板 |
 | A5 | 系統同時使用者 ≤ 10 人（工廠班次制，不需高並發設計） |
 | A6 | 設備數量 ≤ 50 台（SQLite 效能邊界內） |

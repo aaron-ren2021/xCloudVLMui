@@ -38,7 +38,7 @@ make setup
 
 | 能力 | 說明 |
 |-----|------|
-| 🤖 **視覺語言模型推論** | Gemma 4 E4B Q4_K_M，128K context，30–50 tok/s |
+| 🤖 **視覺語言模型推論** | Gemma 4 E2B Q4_K_M，128K context，30–50 tok/s |
 | 📡 **MQTT 感應器整合** | Eclipse Mosquitto，溫度 / 震動 / 壓力 / 轉速即時監控 |
 | 🧠 **RAG 知識庫** | ChromaDB + Gemma Embeddings，PDF/TXT/MD/CSV 文件語意問答 |
 | 📊 **設備健康儀表板** | VHS 分數趨勢、四段式管線狀態、警報 CRUD |
@@ -52,7 +52,7 @@ make setup
 ```
 ┌──────────────────┬────────────────────────────────────────────────────┐
 │  設備總覽儀表板   │ VHS 趨勢 / Pipeline Status / 詳情抽屜 / 警報       │
-│  視覺巡檢        │ WebRTC 串流 / Gemma 4 E4B 即時視覺診斷              │
+│  視覺巡檢        │ WebRTC 串流 / Gemma 4 E2B 即時視覺診斷              │
 │  MQTT 監控       │ 感應器即時數值 / 歷史圖表 / 閾值警報                │
 │  MQTT 設備管理   │ 設備 CRUD / Topic 管理 / 警報閾值設定               │
 │  維修知識庫       │ RAG 語意問答 / 參考來源顯示                         │
@@ -85,7 +85,7 @@ make setup
                           │ OpenAI API
                  ┌────────▼────────────┐
                  │  llama-cpp  :8080   │
-                 │  Gemma 4 E4B GGUF   │
+                 │  Gemma 4 E2B GGUF   │
                  │  128K Context       │
                  └─────────────────────┘
 
@@ -101,7 +101,7 @@ make setup
 | 服務 | Container | Port | 說明 |
 |-----|-----------|------|-----|
 | `model-init` | model-init | — | 首次啟動下載 GGUF 模型 |
-| `llama-cpp` | llama-cpp | 8080 | Gemma 4 E4B 推論引擎 (OpenAI API) |
+| `llama-cpp` | llama-cpp | 8080 | Gemma 4 E2B 推論引擎 (OpenAI API) |
 | `vlm-webui` | vlm-webui | 8090 | WebRTC 即時視覺分析 |
 | `backend` | xcloud-backend | 8000 | FastAPI 中介層 |
 | `frontend` | xcloud-frontend | 3000 | Next.js 儀表板 |
@@ -122,7 +122,7 @@ make setup
 | **主資料庫** | SQLite + aiosqlite | — |
 | **向量資料庫** | ChromaDB | — |
 | **推論引擎** | llama.cpp (llama-server) | r36.4-tegra |
-| **模型** | Gemma 4 E4B Q4_K_M | ~3.8GB / 128K ctx |
+| **模型** | Gemma 4 E2B Q4_K_M | ~3.8GB / 128K ctx |
 | **MQTT** | Eclipse Mosquitto | 2.x |
 | **容器化** | Docker + Compose v2 | 24.x / v2.x |
 | **反向代理** | Nginx | 1.25 Alpine |

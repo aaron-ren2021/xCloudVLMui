@@ -1,5 +1,5 @@
 """
-ocr_service.py — 使用 Gemma 4 E4B (VLM) 從圖片中提取文字
+ocr_service.py — 使用 Gemma 4 E2B (VLM) 從圖片中提取文字
 透過 llama.cpp /v1/chat/completions (multimodal) 進行 OCR
 """
 from __future__ import annotations
@@ -37,7 +37,7 @@ async def extract_text_from_image(
     suffix:      str = ".jpg",
 ) -> str:
     """
-    使用 llama.cpp (Gemma 4 E4B VLM) 從圖片中提取文字。
+    使用 llama.cpp (Gemma 4 E2B VLM) 從圖片中提取文字。
 
     Args:
         image_bytes: 原始圖片位元組

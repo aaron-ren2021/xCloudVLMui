@@ -243,7 +243,7 @@ export default function PipelineFlow() {
 
 const FALLBACK_STAGES = [
   { key: "vision",    label: "視覺取像", detail: "RealSense D455 / WebRTC",       icon: Camera      },
-  { key: "inference", label: "邊緣推論", detail: "Gemma 4 E4B + llama.cpp",        icon: Cpu         },
+  { key: "inference", label: "邊緣推論", detail: "Gemma 4 E2B + llama.cpp",        icon: Cpu         },
   { key: "rag",       label: "知識整合", detail: "SEGMA RAG + SOP",                icon: DatabaseZap },
   { key: "output",    label: "維護輸出", detail: "報告 / 工單 / LINE",              icon: Sparkles    },
 ];

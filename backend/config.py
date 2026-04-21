@@ -21,14 +21,14 @@ class Settings(BaseSettings):
     chroma_collection:  str  = "maintenance_docs"
     embedding_top_k:    int  = 5
 
-    # ── llama.cpp (Gemma 4 E4B) ──────────────────────────
-    # Gemma 4 E4B 支援 128K context；Q4_K_M ~4GB VRAM
+    # ── llama.cpp (Gemma 4 E2B) ──────────────────────────
+    # Gemma 4 E2B 支援 128K context；Q4_K_M ~4GB VRAM
     llm_base_url:    str   = "http://localhost:8080"
-    llm_model:       str   = "gemma-4-e4b-it"    # llama.cpp /v1/models 回傳的 model id
+    llm_model:       str   = "gemma-4-e2b-it"    # llama.cpp /v1/models 回傳的 model id
     llm_ctx_size:    int   = 131072               # 128K = 131072 tokens
     llm_max_tokens:  int   = 4096                 # 單次生成上限
     llm_temperature: float = 0.1
-    embed_model:     str   = "gemma-4-e4b-it"
+    embed_model:     str   = "gemma-4-e2b-it"
 
     # ── live-vlm-webui ───────────────────────────────────
     vlm_webui_url:  str = "http://localhost:8090"

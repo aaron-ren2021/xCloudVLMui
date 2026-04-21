@@ -28,7 +28,7 @@ def _risk_emoji(level: str) -> str:
 
 def vlm_json_to_markdown(vlm_json: dict[str, Any], equipment_name: str = "") -> str:
     """
-    將 Gemma 4 E4B 輸出的異常診斷 JSON 轉為 Markdown 報告。
+    將 Gemma 4 E2B 輸出的異常診斷 JSON 轉為 Markdown 報告。
     支援 anomaly / pdm_thermal / pdm_lubrication / pdm_workorder 等結構。
     """
     lines: list[str] = []

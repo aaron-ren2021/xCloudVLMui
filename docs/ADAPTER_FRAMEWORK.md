@@ -203,7 +203,7 @@ class IVectorStoreAdapter(Protocol):
 ```
 LlamaCppAdapter
   ├── base_url: str           # http://llama-cpp:8080（from config）
-  ├── model: str              # gemma-4-e4b-it
+  ├── model: str              # gemma-4-e2b-it
   ├── ctx_size: int           # 131072
   ├── max_tokens: int         # 4096
   └── temperature: float      # 0.1

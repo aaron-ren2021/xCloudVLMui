@@ -51,21 +51,85 @@ services:
       - model-data:/models
     environment:
       - HF_TOKEN=${HF_TOKEN:-}
+      - MODEL_SOURCE=${MODEL_SOURCE:-auto}
+      - MODEL_KEY=${MODEL_KEY:-gemma-4-e2b-it}
       - MODEL_REPO=${MODEL_REPO:-unsloth/gemma-4-E2B-it-GGUF}
       - MODEL_FILE=${MODEL_FILE:-gemma-4-E2B-it-Q4_K_S.gguf}
+      - MMPROJ_REPO=${MMPROJ_REPO:-unsloth/gemma-4-E2B-it-GGUF}
+      - MMPROJ_FILE=${MMPROJ_FILE:-mmproj-BF16.gguf}
       - HF_HUB_DISABLE_PROGRESS_BARS=0
     command: >
       /bin/bash -c '
-        MODEL=/models/$${MODEL_FILE};
+        set -euo pipefail;
+        MODEL_DIR=/models/$${MODEL_KEY};
+        CURRENT_DIR=/models/current;
+        MODEL=$${MODEL_DIR}/model.gguf;
+        MMPROJ=$${MODEL_DIR}/mmproj.gguf;
+        MANIFEST=$${MODEL_DIR}/manifest.json;
+        mkdir -p "$${MODEL_DIR}" "$${CURRENT_DIR}";
+        MODEL_OK=0;
+        MMPROJ_OK=0;
+
         if [ -f "$$MODEL" ]; then
+          MODEL_OK=1;
           echo "✓ 模型已存在: $$MODEL";
           ls -lh "$$MODEL";
-          exit 0;
+        fi;
+
+        if [ -f "$$MMPROJ" ]; then
+          MMPROJ_OK=1;
+          echo "✓ mmproj 已存在: $$MMPROJ";
+          ls -lh "$$MMPROJ";
+        fi;
+
+        if [ "$$MODEL_OK" -eq 1 ] && [ "$$MMPROJ_OK" -eq 1 ]; then
+          echo "✓ 模型與 mmproj 皆已就緒，更新 current symlink 與 manifest...";
         else
-          echo "❌ 模型不存在: $$MODEL";
-          echo "請先執行 make setup 下載模型";
-          exit 1;
-        fi
+
+          case "$${MODEL_SOURCE}" in
+            local)
+              echo "❌ local 模式下檔案不完整";
+              echo "  MODEL:  $$MODEL (exists=$$MODEL_OK)";
+              echo "  MMPROJ: $$MMPROJ (exists=$$MMPROJ_OK)";
+              echo "請先手動放置檔案或改用 MODEL_SOURCE=auto/hf";
+              exit 1;
+              ;;
+            auto|hf)
+              echo "► MODEL_SOURCE=$${MODEL_SOURCE}，開始從 Hugging Face 補齊缺少檔案...";
+              python -m pip install --no-cache-dir -q "huggingface_hub[cli]>=0.30,<1.0";
+              TOKEN_ARG="";
+              if [ -n "$${HF_TOKEN:-}" ]; then
+                TOKEN_ARG="--token $${HF_TOKEN}";
+              fi;
+
+              if [ "$$MODEL_OK" -ne 1 ]; then
+                eval "huggingface-cli download \"$${MODEL_REPO}\" \"$${MODEL_FILE}\" --local-dir \"$${MODEL_DIR}\" --local-dir-use-symlinks False $$TOKEN_ARG";
+                mv -f "$${MODEL_DIR}/$${MODEL_FILE}" "$$MODEL";
+              fi;
+
+              if [ "$$MMPROJ_OK" -ne 1 ]; then
+                eval "huggingface-cli download \"$${MMPROJ_REPO}\" \"$${MMPROJ_FILE}\" --local-dir \"$${MODEL_DIR}\" --local-dir-use-symlinks False $$TOKEN_ARG";
+                mv -f "$${MODEL_DIR}/$${MMPROJ_FILE}" "$$MMPROJ";
+              fi;
+              ;;
+            *)
+              echo "❌ 不支援的 MODEL_SOURCE: $${MODEL_SOURCE}";
+              echo "可用值: local | auto | hf";
+              exit 1;
+              ;;
+          esac;
+        fi;
+
+        test -f "$$MODEL";
+        test -f "$$MMPROJ";
+        printf "{\n  \"model_id\": \"%s\",\n  \"model_repo\": \"%s\",\n  \"model_file\": \"%s\",\n  \"mmproj_repo\": \"%s\",\n  \"mmproj_file\": \"%s\",\n  \"variant\": \"unknown\",\n  \"quant\": \"unknown\",\n  \"alias\": \"%s\"\n}\n" \
+          "$${MODEL_REPO}" "$${MODEL_REPO}" "$${MODEL_FILE}" "$${MMPROJ_REPO}" "$${MMPROJ_FILE}" "$${MODEL_KEY}" > "$$MANIFEST";
+        ln -sfn "../$${MODEL_KEY}/model.gguf" "$${CURRENT_DIR}/.model.gguf.tmp";
+        ln -sfn "../$${MODEL_KEY}/mmproj.gguf" "$${CURRENT_DIR}/.mmproj.gguf.tmp";
+        mv -Tf "$${CURRENT_DIR}/.model.gguf.tmp" "$${CURRENT_DIR}/model.gguf";
+        mv -Tf "$${CURRENT_DIR}/.mmproj.gguf.tmp" "$${CURRENT_DIR}/mmproj.gguf";
+        echo "✓ 下載完成";
+        ls -lh "$$MODEL" "$$MMPROJ" "$${CURRENT_DIR}/model.gguf" "$${CURRENT_DIR}/mmproj.gguf";
       '
     restart: "no"
     logging: *default-logging
@@ -105,7 +169,6 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-      - MODEL_FILE=${MODEL_FILE:-gemma-4-E2B-it-Q4_K_S.gguf}
       - MODEL_ALIAS=${MODEL_ALIAS:-gemma-4-e2b-it}
     volumes:
       - model-data:/models:ro
@@ -116,13 +179,16 @@ services:
       - -c
       - |
         echo 'Waiting for model...'
-        until [ -f /models/$${MODEL_FILE} ]; do
+        until [ -f /models/current/model.gguf ]; do
+          sleep 5
+        done
+        until [ -f /models/current/mmproj.gguf ]; do
           sleep 5
         done
         echo 'Starting llama-server...'
         exec llama-server \
-          --model /models/$${MODEL_FILE} \
-          --mmproj /models/mmproj-BF16.gguf \
+          --model /models/current/model.gguf \
+          --mmproj /models/current/mmproj.gguf \
           --host 0.0.0.0 \
           --port 8080 \
           --n-gpu-layers 999 \

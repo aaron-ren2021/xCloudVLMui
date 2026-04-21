@@ -1,6 +1,6 @@
 """
 routers/chat.py — RAG 問答 API
-職責：接收使用者問題，語意搜尋知識庫後由 Gemma 4 E4B 生成回答
+職責：接收使用者問題，語意搜尋知識庫後由 Gemma 4 E2B 生成回答
 
 端點：
   POST /api/chat/query  → 語意搜尋 + LLM 生成回答
@@ -20,7 +20,7 @@ async def query_chat(payload: RagQueryRequest):
     """
     RAG 問答：
       1. 語意搜尋 ChromaDB 最相關的 top_k 段落
-      2. 將段落作為 Context 送入 Gemma 4 E4B 生成回答
+      2. 將段落作為 Context 送入 Gemma 4 E2B 生成回答
       3. 回傳答案、來源段落列表及推論延遲
     """
     if not payload.question.strip():

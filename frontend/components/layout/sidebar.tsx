@@ -15,7 +15,7 @@ import {
 import { NAV_ITEMS } from "@/lib/navigation";
 
 const SYSTEM_STATUS = [
-  { label: "Gemma 4 E4B", meta: "128K Context", tone: "status-pill-ok", icon: Cpu },
+  { label: "Gemma 4 E2B", meta: "128K Context", tone: "status-pill-ok", icon: Cpu },
   { label: "SEGMA RAG", meta: "手冊 / 工單", tone: "status-pill-warn", icon: DatabaseZap },
   { label: "WebRTC 通道", meta: "現場巡檢", tone: "status-pill-ok", icon: Radar },
 ];

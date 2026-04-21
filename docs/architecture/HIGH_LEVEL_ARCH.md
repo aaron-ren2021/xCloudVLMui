@@ -35,7 +35,7 @@
 │  │  │  ├─ /api/pipeline             │                             │  │
 │  │  │  ├─ /api/knowledge            │  ┌──────────────────────┐   │  │
 │  │  │  ├─ /api/chat                 │  │  llama.cpp (Port 8080)│  │  │
-│  │  │  ├─ /api/settings             │  │  Gemma 4 E4B GGUF    │  │  │
+│  │  │  ├─ /api/settings             │  │  Gemma 4 E2B GGUF    │  │  │
 │  │  │  └─ /api/health               │  │  Q4_K_M (~4GB VRAM)  │  │  │
 │  │  └──────────────────────────────┘  └──────────────────────┘  │  │
 │  └─────────────────────────────────────────────────────────────────┘  │
@@ -78,7 +78,7 @@ graph TB
         end
 
         subgraph AI["AI 推論層"]
-            LLAMA["llama-cpp\nGemma 4 E4B GGUF Q4_K_M\nPort 8080 (OpenAI API)"]
+            LLAMA["llama-cpp\nGemma 4 E2B GGUF Q4_K_M\nPort 8080 (OpenAI API)"]
             VLM["vlm-webui\nLive VLM WebUI\nPort 8090 (WebRTC)"]
         end
 
@@ -97,7 +97,7 @@ graph TB
     end
 
     subgraph EXTERNAL["🌍 External Services"]
-        HF["HuggingFace Hub\nbartowski/gemma-4-e4b-it-GGUF"]
+        HF["HuggingFace Hub\nbartowski/gemma-4-e2b-it-GGUF"]
         OAUTH["OAuth Provider\nGoogle / GitHub"]
         SENSOR["感測器 / PLC\nMQTT Publisher"]
         CAMERA["Intel RealSense D455\nUSB 鏡頭 /dev/video0"]
@@ -269,7 +269,7 @@ sequenceDiagram
 | 層次 | 技術 | 版本 | 選型依據 |
 |------|------|------|---------|
 | 推論引擎 | llama.cpp (Tegra) | r36.4 | ADR-002：ARM64 Jetson 唯一成熟方案 |
-| LLM 模型 | Gemma 4 E4B GGUF Q4_K_M | 4B | 4GB VRAM，128K context，OpenAI-compatible |
+| LLM 模型 | Gemma 4 E2B GGUF Q4_K_M | 4B | 4GB VRAM，128K context，OpenAI-compatible |
 | 後端框架 | FastAPI + uvicorn | 0.111.1 | 非同步高效能，OpenAPI 自動文件 |
 | ORM | SQLAlchemy async + aiosqlite | 2.0.30 | 非同步 ACID，輕量邊緣部署 |
 | 主資料庫 | SQLite (WAL mode) | 3.x | ADR-001：零基礎設施，備份簡單 |

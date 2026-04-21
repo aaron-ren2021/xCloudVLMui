@@ -12,7 +12,7 @@
 ## 背景與問題
 
 系統需要在 **Jetson AGX Orin（ARM64, JetPack 6.0, CUDA 12.6）** 上執行
-`Gemma 4 E4B` 大型語言模型，提供：
+`Gemma 4 E2B` 大型語言模型，提供：
 - 設備異常分析（VLM vision-language 推論）
 - RAG 知識庫問答（結合 ChromaDB 語意搜尋）
 - 128K context window 支援（長文件理解）
@@ -81,7 +81,7 @@
    CUDA 12.6 + cuDNN 整合，確保最大 GPU 利用率。
 
 2. **資源效率極佳**：
-   - Gemma 4 E4B Q4_K_M = ~4GB VRAM；剩餘 60GB 作 KV Cache
+   - Gemma 4 E2B Q4_K_M = ~4GB VRAM；剩餘 60GB 作 KV Cache
    - 128K context 可容納完整 SOP 文件（10,000-token 等級）
 
 3. **API 相容性零切換成本**：`LlamaCppAdapter` 實作 `ILLMAdapter` Protocol，

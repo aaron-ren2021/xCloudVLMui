@@ -747,7 +747,7 @@ export default function VlmPage() {
         >
           <div className="grid grid-cols-2 gap-3">
             <StatusTile label="VLM WebUI" statusLabel={status?.webui_ok ? "Ready" : "Offline"} value={status?.webui_ok ? "Online" : "Offline"} detail={status?.webui_url ?? VLM_URL} tone={status?.webui_ok ? "status-pill-ok" : "status-pill-danger"} />
-            <StatusTile label="推論引擎" statusLabel={status?.llm_ok ? "Ready" : "Offline"} value={status?.llm_ok ? "Gemma Ready" : "Engine Offline"} detail={status?.model ?? "Gemma 4 E4B"} tone={status?.llm_ok ? "status-pill-ok" : "status-pill-danger"} />
+            <StatusTile label="推論引擎" statusLabel={status?.llm_ok ? "Ready" : "Offline"} value={status?.llm_ok ? "Gemma Ready" : "Engine Offline"} detail={status?.model ?? "Gemma 4 E2B"} tone={status?.llm_ok ? "status-pill-ok" : "status-pill-danger"} />
             <StatusTile label="模型端點" statusLabel="API" value="http://llama-cpp:8080" detail="OpenAI 相容 API" tone="status-pill-warn" />
             <StatusTile label="報告儲存" statusLabel={reportId ? "Ready" : "Standby"} value={reportId ? `已建立 ${reportId.slice(0, 8)}` : "等待巡檢結果"} detail="支援轉出維護報告" tone={reportId ? "status-pill-ok" : "status-pill-warn"} />
           </div>

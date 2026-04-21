@@ -409,10 +409,10 @@ CHROMA_PERSIST_DIR=/data/chroma
 CHROMA_COLLECTION=maintenance_docs
 EMBEDDING_TOP_K=5
 LLM_BASE_URL=http://llama-cpp:8080
-LLM_MODEL=gemma-4-e4b-it
+LLM_MODEL=gemma-4-e2b-it
 LLM_MAX_TOKENS=4096
 LLM_TEMPERATURE=0.1
-EMBED_MODEL=gemma-4-e4b-it
+EMBED_MODEL=gemma-4-e2b-it
 VLM_WEBUI_URL=http://vlm-webui:8090
 ALLOWED_ORIGINS=["http://localhost","http://localhost:${FRONTEND_PORT}","http://air-030","http://air-030.local"]
 NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
@@ -444,7 +444,7 @@ fi
 
 # ── 模型下載（可跳過）────────────────────────────────────────────────────────
 if [[ "$SKIP_MODEL" == "false" ]]; then
-  log_step "07 / 08  下載 Gemma 4 E4B GGUF 模型（~4GB）"
+  log_step "07 / 08  下載 Gemma 4 E2B GGUF 模型（~4GB）"
   if [[ -f "${INSTALL_DIR}/scripts/download-model.sh" ]]; then
     bash "${INSTALL_DIR}/scripts/download-model.sh" --yes \
       2>&1 | tail -5 || log_warn "模型下載失敗，請手動下載後放入 ${INSTALL_DIR}/models/"
@@ -453,7 +453,7 @@ if [[ "$SKIP_MODEL" == "false" ]]; then
   fi
 else
   log_step "07 / 08  跳過模型下載（--no-model）"
-  log_warn "請確認模型已放置於 ${INSTALL_DIR}/models/gemma-4-e4b-it-Q4_K_M.gguf"
+  log_warn "請確認模型已放置於 ${INSTALL_DIR}/models/gemma-4-e2b-it-Q4_K_M.gguf"
 fi
 
 # ── 啟動服務 ─────────────────────────────────────────────────────────────────
@@ -590,7 +590,7 @@ Browser → Nginx :80
              ├── /api → FastAPI :8000
              └── /vlm → VLM WebUI :8090
 
-FastAPI → llama.cpp :8080 (Gemma 4 E4B GGUF)
+FastAPI → llama.cpp :8080 (Gemma 4 E2B GGUF)
         → ChromaDB (本機)
         → SQLite (本機)
         → Mosquitto MQTT :1883

@@ -69,7 +69,7 @@
 - **`backend/routers/knowledge.py`**：知識文件管理路由（`/api/knowledge`）
   - 文字文件與圖片（OCR）上傳、列表、刪除
 - **`backend/routers/chat.py`**：RAG 問答路由（`/api/chat`）
-  - `POST /api/chat/query` — 語意搜尋 + Gemma 4 E4B 生成回答
+  - `POST /api/chat/query` — 語意搜尋 + Gemma 4 E2B 生成回答
 - **`backend/adapters/`**：適配器層（Adapter Layer）
   - `base.py` — `ISensorAdapter` / `ILLMAdapter` / `IVectorStoreAdapter` Protocol 定義
   - `llama_cpp_adapter.py` — llama.cpp REST API 適配器

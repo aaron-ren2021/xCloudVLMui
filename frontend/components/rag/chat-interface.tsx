@@ -125,7 +125,7 @@ export default function ChatInterface() {
               </h3>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
                 問題可以直接描述設備異常、老化徵兆、維修步驟或工單內容。我們會先搜尋
-                SEGMA RAG，再交由 Gemma 4 E4B 生成可讀、可追溯的回答。
+                SEGMA RAG，再交由 Gemma 4 E2B 生成可讀、可追溯的回答。
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2">

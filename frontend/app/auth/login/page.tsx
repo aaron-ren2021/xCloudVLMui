@@ -49,7 +49,7 @@ function OAuthButton({ label, icon, loading, onClick }: OAuthButtonProps) {
 
 const STACK_ITEMS = [
   { icon: Camera, title: "視覺輸入", detail: "RealSense D455 / 手機 / 筆電鏡頭" },
-  { icon: Cpu, title: "邊緣推論", detail: "Gemma 4 E4B + llama.cpp on AIR-030" },
+  { icon: Cpu, title: "邊緣推論", detail: "Gemma 4 E2B + llama.cpp on AIR-030" },
   { icon: DatabaseZap, title: "知識整合", detail: "SEGMA RAG / SOP / 歷史工單" },
   { icon: Workflow, title: "維護輸出", detail: "報告 / LINE / EAM 工單系統" },
 ];
