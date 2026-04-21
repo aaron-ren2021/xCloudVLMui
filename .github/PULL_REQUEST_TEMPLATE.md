@@ -54,6 +54,25 @@ Closes #<!-- issue number -->
 - [ ] 未導入 `air030` 重寫版 `frontend/app/main/vlm/page.tsx`
 - [ ] 未改變目前 RTSP/VLM 啟動順序
 
+### Guardrails 證據（VLM 移植 PR 必填）
+```
+受保護邊界零變更聲明：
+- backend/routers/vlm.py: [YES/NO]
+- docker-compose.yml: [YES/NO]
+- nginx/nginx.conf: [YES/NO]
+- vlm-webui/patch-default-rtsp.py: [YES/NO]
+
+本 PR 實際變更檔案（貼路徑）：
+1.
+2.
+3.
+
+回歸驗證結果（/vlm, iframe, standalone, VlmSimpleOverlay）：
+1.
+2.
+3.
+```
+
 ---
 
 ## 🧪 測試計畫（Test Plan）

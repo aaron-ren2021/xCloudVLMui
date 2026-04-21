@@ -21,8 +21,12 @@ import {
 import toast from "react-hot-toast";
 import { dashboardApi, reportsApi, vlmApi, ragApi } from "@/lib/api";
 import type { Equipment, RagSource } from "@/types";
-import type { PeopleAnalysisSnapshot } from "@/hooks/useBehaviorDetector";
-import { ACTION_ZH, GENDER_ZH } from "@/hooks/useBehaviorDetector";
+import {
+  PEOPLE_ACTION_LABELS,
+  PEOPLE_ANALYSIS_MODE_LABEL,
+  PEOPLE_GENDER_LABELS,
+} from "@/lib/people-analysis-adapter";
+import type { PeopleAnalysisOutput } from "@/types/vlm-porting";
 import { VlmPeopleOverlay } from "@/components/vlm/vlm-people-overlay";
 import { VlmSimpleOverlay } from "@/components/vlm/vlm-simple-overlay";
 
@@ -118,7 +122,7 @@ export default function VlmPage() {
   const [statusLoading, setStatusLoading] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [peopleOverlayEnabled, setPeopleOverlayEnabled] = useState(true);
-  const [peopleSnapshot, setPeopleSnapshot] = useState<PeopleAnalysisSnapshot | null>(null);
+  const [peopleSnapshot, setPeopleSnapshot] = useState<PeopleAnalysisOutput | null>(null);
   const [compareQuery, setCompareQuery] = useState("");
   const [comparing, setComparing] = useState(false);
   const [compareResult, setCompareResult] = useState<{
@@ -521,6 +525,7 @@ export default function VlmPage() {
               <div>
                 <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">People Analysis</p>
                 <h3 className="mt-1 text-base font-semibold text-white">人員分析與行為提示</h3>
+                <p className="mt-1 text-xs text-cyan-300">{PEOPLE_ANALYSIS_MODE_LABEL}</p>
               </div>
             </div>
             <span className={`status-pill ${peopleOverlayEnabled ? "status-pill-ok" : "status-pill-warn"}`}>
@@ -542,14 +547,14 @@ export default function VlmPage() {
                   <StatusTile
                     label="主要動作"
                     statusLabel="Action"
-                    value={peopleSnapshot.personInfos[0] ? ACTION_ZH[peopleSnapshot.personInfos[0].action] : "未提供"}
+                    value={peopleSnapshot.personInfos[0] ? PEOPLE_ACTION_LABELS[peopleSnapshot.personInfos[0].action] : "未提供"}
                     detail={peopleSnapshot.personInfos[0]?.actionBasis ?? "尚未偵測到可用線索"}
                     tone="status-pill-warn"
                   />
                   <StatusTile
                     label="性別推測"
                     statusLabel="Experimental"
-                    value={peopleSnapshot.personInfos[0] ? GENDER_ZH[peopleSnapshot.personInfos[0].gender] : "未提供"}
+                    value={peopleSnapshot.personInfos[0] ? PEOPLE_GENDER_LABELS[peopleSnapshot.personInfos[0].gender] : "未提供"}
                     detail={peopleSnapshot.personInfos[0]?.genderBasis ?? "heuristic only"}
                     tone="status-pill-warn"
                   />
@@ -558,7 +563,7 @@ export default function VlmPage() {
                 <div className="rounded-[18px] border border-white/8 bg-white/[0.03] p-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">實驗性說明</p>
                   <p className="mt-2 text-sm leading-6 text-slate-300">
-                    性別推測只做輔助顯示，不作正式判定或告警依據。若目前來源僅有 VLM 文字結果，動作與性別會以關鍵字 heuristic 呈現。
+                    Preview / Heuristic：本區塊僅做輔助判讀，不代表即時姿態模型已接入。若目前來源僅有 VLM 文字結果，動作與性別會以關鍵字 heuristic 呈現。
                   </p>
                 </div>
               </div>
@@ -579,7 +584,7 @@ export default function VlmPage() {
                                 : "border-slate-400/20 bg-white/5 text-slate-200"
                           }`}
                         >
-                          {item.nameZh}
+                          {item.nameZh ?? item.type}
                         </span>
                       ))}
                     </div>

@@ -27,6 +27,10 @@ export interface AdapterBehaviorInfo {
   type: string;
   risk: BehaviorRisk;
   confidence: number;
+  timestamp?: number;
+  nameZh?: string;
+  nameEn?: string;
+  description?: string;
 }
 
 export interface PeopleAnalysisInput {
@@ -39,6 +43,7 @@ export interface PeopleAnalysisOutput {
   personCount: number;
   personInfos: AdapterPersonInfo[];
   behaviors: AdapterBehaviorInfo[];
+  sourceText?: string;
 }
 
 export interface PeopleAnalysisAdapter {
